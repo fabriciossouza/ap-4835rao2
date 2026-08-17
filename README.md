@@ -1,6 +1,6 @@
 # Apresentação sincronizada — tablet na mão dela, celular na sua
 
-**Endereços (GitHub Pages):** ver o fim deste arquivo (preenchido na publicação).
+**Endereços (GitHub Pages):** ver o fim deste arquivo. Entrada rápida: **https://fabriciossouza.github.io/ap-4835rao2/**
 
 ## Como funciona
 
@@ -36,3 +36,14 @@ O roteiro do celular vem do `../roteiro.md`. Se editar o roteiro: `python3 gerar
 ## Depois da reunião
 
 Apagar o repositório público: `gh repo delete fabriciossouza/<repo> --yes` — o deck e o roteiro não precisam continuar na internet.
+
+---
+
+## Endereços publicados (17/08/2026)
+
+- **Entrada (dois botões):** https://fabriciossouza.github.io/ap-4835rao2/
+- **Tablet:** https://fabriciossouza.github.io/ap-4835rao2/tela.html
+- **Celular:** https://fabriciossouza.github.io/ap-4835rao2/controle.html
+
+Repositório: `fabriciossouza/ap-4835rao2` (público, temporário — apagar depois da reunião).
+Testado em 17/08 pelo endereço público: troca de slide confirmada pelo tablet em ~260 ms.
