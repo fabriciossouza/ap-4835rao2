@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Acolhe Brumado</title>
+<style>
+  html, body { margin:0; height:100%; background:#000; overflow:hidden; -webkit-user-select:none; user-select:none; touch-action:none; }
+  #slide { position:fixed; inset:0; width:100vw; height:100vh; object-fit:contain; background:#000; opacity:1; transition:opacity .2s ease; }
+  #slide.trocando { opacity:0; }
+  #splash { position:fixed; inset:0; background:radial-gradient(ellipse at 60% 40%, #0f2b2a 0%, #050a0a 70%); color:#e6f4f1;
+            display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; font-family:-apple-system,system-ui,Roboto,sans-serif; cursor:pointer; }
+  #splash h1 { font-size:clamp(28px,6vw,64px); font-weight:700; letter-spacing:-.02em; margin:0; }
+  #splash p  { font-size:clamp(14px,2.4vw,22px); opacity:.75; margin:0; }
+  #splash .fio { width:min(60vw,520px); height:4px; border-radius:4px; background:linear-gradient(90deg,#1e6fd9,#2dd4bf,#34d399); margin-bottom:12px; }
+  #splash small { position:absolute; bottom:18px; opacity:.4; font-size:12px; }
+  #dot { position:fixed; right:10px; bottom:10px; width:8px; height:8px; border-radius:50%; background:#f59e0b; opacity:.45; transition:background .3s; }
+  #dot.ok { background:#22c55e; } #dot.off { background:#ef4444; }
+  #num { position:fixed; left:12px; bottom:8px; color:#fff; opacity:.18; font:12px -apple-system,system-ui,sans-serif; }
+</style>
+</head>
+<body>
+<img id="slide" alt="" src="slides/01.jpg">
+<div id="num"></div>
+<div id="dot"></div>
+<div id="splash">
+  <div class="fio"></div>
+  <h1>Acolhe Brumado</h1>
+  <p>toque para iniciar</p>
+  <small>Secretaria Municipal de Saúde · 18 de agosto de 2026</small>
+</div>
+
+<script src="config.js"></script>
+<script src="sync.js"></script>
+<script>
+(function () {
+  const TOTAL = CFG.total, img = document.getElementById("slide"), dot = document.getElementById("dot"),
+        num = document.getElementById("num"), splash = document.getElementById("splash");
+  const src = n => "slides/" + String(n).padStart(2, "0") + ".jpg";
+  let atual = 1, wake = null, iniciado = false;
+
+  // pré-carrega tudo (2,5 MB) — assim a troca é instantânea mesmo com 4G ruim
+  const cache = [];
+  for (let i = 1; i <= TOTAL; i++) { const im = new Image(); im.src = src(i); cache.push(im); }
+
+  function mostrar(n, avisar) {
+    n = Math.max(1, Math.min(TOTAL, n));
+    if (n === atual && img.getAttribute("src") === src(n)) return;
+    atual = n;
+    img.classList.add("trocando");
+    setTimeout(() => { img.src = src(n); img.onload = () => img.classList.remove("trocando"); }, 120);
+    num.textContent = n + " / " + TOTAL;
+    try { localStorage.setItem("tela.slide", String(n)); } catch {}
+    if (avisar) Sync.sendAck(n);
+  }
+
+  async function pedirWakeLock() {
+    try { if ("wakeLock" in navigator) { wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => { wake = null; }); } } catch {}
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && !wake) pedirWakeLock(); });
+
+  async function iniciar() {
+    if (iniciado) return; iniciado = true;
+    splash.style.display = "none";
+    try { await document.documentElement.requestFullscreen({ navigationUI: "hide" }); } catch {}
+    try { await screen.orientation.lock("landscape"); } catch {}
+    pedirWakeLock();
+    // último slide conhecido (se a página recarregou no meio)
+    try { const s = parseInt(localStorage.getItem("tela.slide") || "1", 10); if (s > 1) mostrar(s, false); } catch {}
+    Sync.connect({
+      onState: (n, de, antiga) => { mostrar(n, !antiga); },   // histórico: aplica sem "recebi"; ao vivo: confirma
+      onStatus: s => { dot.className = s === "ok" ? "ok" : (s === "reconectando" ? "" : (s === "off" ? "off" : "")); },
+    });
+    setInterval(() => Sync.sendHb(), 45000);   // "estou vivo" a cada 45 s (baixo tráfego)
+  }
+  splash.addEventListener("click", iniciar);
+  splash.addEventListener("touchend", e => { e.preventDefault(); iniciar(); }, { passive: false });
+
+  // Override manual: TOQUE DUPLO na metade direita avança, na esquerda volta.
+  // Toque simples não faz nada — pra ninguém trocar sem querer segurando o tablet.
+  let ultimoToque = 0, ultimoLado = null;
+  function toque(x) {
+    const lado = x > window.innerWidth / 2 ? "dir" : "esq", agora = Date.now();
+    if (agora - ultimoToque < 350 && lado === ultimoLado) {
+      ultimoToque = 0; ultimoLado = null;
+      const n = lado === "dir" ? atual + 1 : atual - 1;
+      if (n >= 1 && n <= TOTAL) { mostrar(n, false); Sync.sendSlide(n, "tela"); }
+    } else { ultimoToque = agora; ultimoLado = lado; }
+  }
+  document.addEventListener("touchend", e => { if (!iniciado) return; e.preventDefault(); toque(e.changedTouches[0].clientX); }, { passive: false });
+  document.addEventListener("click", e => { if (!iniciado || e.target === splash || splash.contains(e.target)) return; toque(e.clientX); });
+  document.addEventListener("keydown", e => {   // teclado, pra testar no computador
+    if (!iniciado) { if (e.key === "Enter" || e.key === " ") iniciar(); return; }
+    if (e.key === "ArrowRight" || e.key === "PageDown") { if (atual < TOTAL) { mostrar(atual + 1, false); Sync.sendSlide(atual, "tela"); } }
+    if (e.key === "ArrowLeft"  || e.key === "PageUp")   { if (atual > 1)     { mostrar(atual - 1, false); Sync.sendSlide(atual, "tela"); } }
+  });
+  num.textContent = "1 / " + TOTAL;
+})();
+</script>
+</body>
+</html>
