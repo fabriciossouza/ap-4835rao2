@@ -65,15 +65,25 @@
   #barra button:active { filter:brightness(1.15); }
   #barra button:disabled { opacity:.35; }
   #ack { font-size:12px; color:var(--mut); }
-  #ack.ok { color:var(--ok); } #ack.wait { color:var(--warn); }
+  #ack.ok { color:var(--ok); } #ack.wait { color:var(--warn); } #ack.bad { color:var(--bad); font-weight:600; }
+  .st .d.q { background:#64748b; }
+  #srvs .d { margin-right:-2px; }
+  #alerta { display:none; margin:-8px -12px 8px; background:var(--bad); color:#fff; padding:12px 14px;
+            font-size:18px; font-weight:700; line-height:1.3; box-shadow:0 6px 24px rgba(0,0,0,.5); }
+  #alerta.on { display:flex; align-items:center; gap:12px; }
+  #alerta .tx { flex:1; }
+  #alerta .tx small { display:block; font-size:13px; font-weight:400; opacity:.9; margin-top:2px; }
+  #alerta button { flex:0 0 auto; height:52px; padding:0 16px; border-radius:12px; border:0; background:#fff; color:var(--bad); font-size:16px; font-weight:700; }
+  #alerta button:active { filter:brightness(.9); }
   em { color:#cbd5e1; }
 </style>
 </head>
 <body>
 
 <div id="topo">
+  <div id="alerta"><div class="tx"><span id="atx">⚠ tablet ainda no ?</span><small id="asub">olhe o tablet · toque duplo nele avança</small></div><button id="breenviar">📡 reenviar</button></div>
   <div class="linha">
-    <div class="st"><span class="d" id="dmural"></span><span id="smural">mural</span></div>
+    <div class="st" id="srvs"><span id="smural">mural</span></div>
     <div class="st"><span class="d" id="dtab"></span><span id="stab">tablet</span></div>
     <div id="ack">—</div>
     <div id="timer" class="parado"><div class="t">00:00</div><div class="m">toque p/ iniciar</div></div>
@@ -115,9 +125,9 @@
   <button class="next" id="bnext">›</button>
 </div>
 
-<script src="config.js?v=4"></script>
-<script src="sync.js?v=4"></script>
-<script src="notas.js?v=4"></script>
+<script src="config.js?v=5"></script>
+<script src="sync.js?v=5"></script>
+<script src="notas.js?v=5"></script>
 <script>
 (function () {
   const D = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(window.NOTAS_B64), c => c.charCodeAt(0))));
@@ -128,6 +138,8 @@
 
   let atual = ls.get("slide", 1), versao = ls.get("versao", "25"), t0 = ls.get("t0", null);
   let ackN = null, ackAt = 0, tabAt = 0, aberto = { fala: false, cuid: false, perg: false, tela: false };
+  // envio com reenvio até o tablet confirmar: {n, tentativa, timers[], semInternet}
+  let envio = null;
 
   // --- mini-markdown: **negrito**, *itálico*, listas "1." e "-", parágrafos ---
   const esc = s => s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
@@ -189,6 +201,8 @@
   function renderAck() {
     const a = $("ack"), agora = Date.now();
     if (ackN === atual) { a.className = "ok"; a.textContent = "✓ tablet no " + atual; }
+    else if (envio && envio.n === atual && envio.semInternet) { a.className = "bad"; a.textContent = "✗ não enviou"; }
+    else if (envio && envio.n === atual) { a.className = "wait"; a.textContent = "enviando " + atual + "… (" + envio.tentativa + "/3)"; }
     else if (ackN !== null) { a.className = "wait"; a.textContent = "tablet no " + ackN + "…"; }
     else { a.className = ""; a.textContent = "—"; }
     const d = $("dtab"), st = $("stab"), vis = Math.max(ackAt, tabAt);
@@ -211,10 +225,38 @@
   function ir(n, enviar) {
     n = Math.max(1, Math.min(TOTAL, n));
     if (n !== atual) { atual = n; ls.set("slide", n); aberto.fala = false; aberto.cuid = false; aberto.perg = false; aberto.tela = false; }
-    if (enviar) { Sync.sendSlide(n, "controle"); if (navigator.vibrate) navigator.vibrate(25); }
+    if (enviar) { enviarSlide(n); if (navigator.vibrate) navigator.vibrate(25); }
     if (!t0 && enviar && n > 1) { t0 = Date.now(); ls.set("t0", t0); }
     render();
   }
+
+  // --- envio com reenvio até confirmar ---
+  // 1ª tentativa na hora; se em 4 s não veio "recebi" do slide certo, reenvia (t novo); de novo aos 10 s e 20 s.
+  // A partir de 10 s sem confirmação, faixa vermelha no topo. Tudo some quando chega o ✓.
+  function limparEnvio() { if (envio) { envio.timers.forEach(clearTimeout); } envio = null; }
+  function alerta(on, txt, sub) {
+    $("alerta").classList.toggle("on", !!on);
+    if (txt) $("atx").textContent = txt;
+    if (sub) $("asub").textContent = sub;
+    if (on && navigator.vibrate) navigator.vibrate([60, 40, 60]);
+  }
+  async function publicar(n) {
+    const ok = await Sync.sendSlide(n, "controle");
+    if (envio && envio.n === n) { envio.semInternet = ok === 0; renderAck(); }
+    if (ok === 0 && envio && envio.n === n) alerta(true, "✗ não enviou o slide " + n, "sem internet no celular? · toque duplo no tablet · tente 📡 reenviar");
+    return ok;
+  }
+  function enviarSlide(n) {
+    limparEnvio(); alerta(false);
+    envio = { n, tentativa: 1, timers: [], semInternet: false };
+    publicar(n);
+    const de_novo = (k) => () => { if (!envio || envio.n !== n || ackN === n) return; envio.tentativa = k; renderAck(); publicar(n); };
+    envio.timers.push(setTimeout(de_novo(2), 4000));
+    envio.timers.push(setTimeout(() => { if (envio && envio.n === n && ackN !== n) alerta(true, "⚠ tablet ainda no " + (ackN === null ? "?" : ackN) + " — você está no " + n, "olhe o tablet · toque duplo nele avança · 📡 reenviar"); }, 10000));
+    envio.timers.push(setTimeout(de_novo(3), 10500));
+    envio.timers.push(setTimeout(() => { if (envio && envio.n === n && ackN !== n) { envio.tentativa = 3; publicar(n); } }, 20000));
+  }
+  $("breenviar").onclick = () => { enviarSlide(atual); };
   $("bnext").onclick = () => { const p = proximoNoCaminho(atual, 1); ir(p || Math.min(TOTAL, atual + 1), true); };
   $("bprev").onclick = () => { const p = proximoNoCaminho(atual, -1); ir(p || Math.max(1, atual - 1), true); };
   $("bgrid").onclick = () => $("grade").classList.add("on");
@@ -236,14 +278,26 @@
   document.addEventListener("visibilitychange", () => { if (!document.hidden) pedirWake(); });
 
   // --- mural ---
+  // pontinhos: um por servidor do mural
+  const SRV = CFG.servers || [CFG.ntfy];
+  $("srvs").innerHTML = SRV.map((s, i) => "<span class='d' data-s='" + i + "' title='" + s + "'></span>").join("") + "<span id='smural'>mural</span>";
+  function renderSrvs() {
+    const est = Sync.servers(); let vivos = 0;
+    SRV.forEach((s, i) => { const e = est[s]; const d = document.querySelector("#srvs .d[data-s='" + i + "']");
+      d.className = "d " + (e === "ok" ? "ok" : (e === "quarentena" ? "q" : (e === "off" ? "off" : ""))); if (e === "ok") vivos++; });
+    $("smural").textContent = "mural " + vivos + "/" + SRV.length;
+  }
   Sync.connect({
-    onState: (n, de, antiga) => { ir(n, false); },   // histórico (último vale) ou override do tablet → acompanha
-    onAck: (n) => { ackN = n; ackAt = Date.now(); renderAck(); },
+    // replay do histórico (último vale) ou toque duplo no tablet → acompanha
+    onState: (n, de, info) => { if (info && info.replay) { ir(n, false); return; }
+                                if (de === "tela") { ackN = n; ackAt = Date.now(); tabAt = ackAt; limparEnvio(); alerta(false); }   // toque duplo no tablet manda; para de reenviar
+                                ir(n, false); },
+    onAck: (n) => { ackN = n; ackAt = Date.now(); tabAt = ackAt; if (envio && envio.n === n) { limparEnvio(); alerta(false); } renderAck(); },
     onHb: () => { tabAt = Date.now(); renderAck(); },
-    onStatus: s => { $("dmural").className = "d " + (s === "ok" ? "ok" : (s === "off" ? "off" : "")); $("smural").textContent = s === "ok" ? "mural" : s; },
-    onPublish: (srv, ok) => { const a = $("ack"); if (!ok) { a.className = "wait"; a.textContent = "✗ não enviou — toque duplo no tablet"; }
-                              else if (srv && srv !== CFG.servers[0]) { $("smural").textContent = "mural·" + srv.replace("https://ntfy.", "").split(".")[0]; } },
+    onStatus: () => renderSrvs(),
+    onPublish: () => renderSrvs(),
   });
+  setInterval(renderSrvs, 3000);
   render();
 })();
 </script>

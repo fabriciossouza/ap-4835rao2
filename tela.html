@@ -30,17 +30,17 @@
   <div class="fio"></div>
   <h1>Acolhe Brumado</h1>
   <p>toque para iniciar</p>
-  <small>Secretaria Municipal de Saúde · 18 de agosto de 2026</small>
+  <small>Secretaria Municipal de Saúde · 19 de agosto de 2026</small>
 </div>
 
-<script src="config.js?v=4"></script>
-<script src="sync.js?v=4"></script>
+<script src="config.js?v=5"></script>
+<script src="sync.js?v=5"></script>
 <script>
 (function () {
   const TOTAL = CFG.total, img = document.getElementById("slide"), dot = document.getElementById("dot"),
         num = document.getElementById("num"), splash = document.getElementById("splash");
   const src = n => "slides/" + String(n).padStart(2, "0") + ".jpg?v=4";
-  let atual = 1, wake = null, iniciado = false;
+  let atual = 1, wake = null, iniciado = false, ultimoAckUid = null, vivosTxt = "";
 
   // pré-carrega tudo (2,5 MB) — assim a troca é instantânea mesmo com 4G ruim
   const cache = [];
@@ -52,7 +52,7 @@
     atual = n;
     img.classList.add("trocando");
     setTimeout(() => { img.src = src(n); img.onload = () => img.classList.remove("trocando"); }, 120);
-    num.textContent = n + " / " + TOTAL;
+    num.textContent = n + " / " + TOTAL + vivosTxt;
     try { localStorage.setItem("tela.slide", String(n)); } catch {}
     if (avisar) Sync.sendAck(n);
   }
@@ -68,12 +68,7 @@
     try { await document.documentElement.requestFullscreen({ navigationUI: "hide" }); } catch {}
     try { await screen.orientation.lock("landscape"); } catch {}
     pedirWakeLock();
-    // último slide conhecido (se a página recarregou no meio)
-    try { const s = parseInt(localStorage.getItem("tela.slide") || "1", 10); if (s > 1) mostrar(s, false); } catch {}
-    Sync.connect({
-      onState: (n, de, antiga) => { mostrar(n, !antiga); },   // histórico: aplica sem "recebi"; ao vivo: confirma
-      onStatus: s => { dot.className = s === "ok" ? "ok" : (s === "reconectando" ? "" : (s === "off" ? "off" : "")); },
-    });
+    Sync.poll("iniciar");                            // consulta o mural na hora (caso algo tenha chegado enquanto a splash estava na tela)
     setTimeout(() => Sync.sendAck(atual), 1500);   // um "recebi" ao iniciar = sinal de vida (sem heartbeat: cota diária)
   }
   splash.addEventListener("click", iniciar);
@@ -98,6 +93,25 @@
     if (e.key === "ArrowLeft"  || e.key === "PageUp")   { if (atual > 1)     { mostrar(atual - 1, false); Sync.sendSlide(atual, "tela"); } }
   });
   num.textContent = "1 / " + TOTAL;
+
+  // Escuta o mural DESDE O CARREGAMENTO (antes era só depois do toque — página recarregada e não tocada ficava surda).
+  // último slide conhecido (se a página recarregou no meio)
+  try { const s = parseInt(localStorage.getItem("tela.slide") || "1", 10); if (s > 1) mostrar(s, false); } catch {}
+  Sync.connect({
+    // replay do histórico: só posiciona. Ao vivo: aplica se mudou e confirma UMA vez por toque (uid) — mesmo que já esteja
+    // no slide certo (o celular pode estar reenviando porque perdeu o "recebi").
+    onState: (n, de, info) => {
+      if (info && info.replay) { mostrar(n, false); return; }
+      if (n !== atual) mostrar(n, false);
+      if (de === "controle" && info && info.uid !== ultimoAckUid) { ultimoAckUid = info.uid; Sync.sendAck(n); }
+    },
+    onStatus: (s, vivos, total) => {
+      dot.className = vivos ? "ok" : (s === "off" ? "off" : "");
+      dot.title = "mural " + vivos + "/" + total;
+      vivosTxt = " · mural " + vivos + "/" + total;
+      num.textContent = atual + " / " + TOTAL + vivosTxt;
+    },
+  });
 })();
 </script>
 </body>
