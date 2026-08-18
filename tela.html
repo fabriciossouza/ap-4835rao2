@@ -33,13 +33,13 @@
   <small>Secretaria Municipal de Saúde · 18 de agosto de 2026</small>
 </div>
 
-<script src="config.js?v=3"></script>
-<script src="sync.js?v=3"></script>
+<script src="config.js?v=4"></script>
+<script src="sync.js?v=4"></script>
 <script>
 (function () {
   const TOTAL = CFG.total, img = document.getElementById("slide"), dot = document.getElementById("dot"),
         num = document.getElementById("num"), splash = document.getElementById("splash");
-  const src = n => "slides/" + String(n).padStart(2, "0") + ".jpg";
+  const src = n => "slides/" + String(n).padStart(2, "0") + ".jpg?v=4";
   let atual = 1, wake = null, iniciado = false;
 
   // pré-carrega tudo (2,5 MB) — assim a troca é instantânea mesmo com 4G ruim

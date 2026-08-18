@@ -31,7 +31,7 @@
 
 ## Regerar as notas do celular
 
-O roteiro do celular vem do `../roteiro.md`. Se editar o roteiro: `python3 gerar-notas.py` (regrava `notas.js`), depois publicar de novo (`git add -A && git commit -m "notas" && git push`).
+O roteiro do celular vem do `../files/roteiro.md`. Se editar o roteiro: `python3 gerar-notas.py` (regrava `notas.js`), depois publicar de novo (`git add -A && git commit -m "notas" && git push`).
 
 ## Depois da reunião
 
@@ -47,3 +47,4 @@ Apagar o repositório público: `gh repo delete fabriciossouza/<repo> --yes` —
 
 Repositório: `fabriciossouza/ap-4835rao2` (público, temporário — apagar depois da reunião).
 Testado em 17/08 pelo endereço público: troca de slide confirmada pelo tablet em ~260 ms.
+**Atualizado em 18/08:** slide 9 novo (infográfico "A Jornada do Paciente em Brumado"), roteiro pra quarta 19/08, `?v=4` nos scripts e nas imagens — **recarregar as duas páginas nos aparelhos** (o Pages guarda cache por 10 min).

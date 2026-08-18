@@ -6,7 +6,7 @@ Aborta se algum dos 14 slides não for encontrado no roteiro.
 """
 import base64, json, re, sys, pathlib
 
-ROTEIRO = pathlib.Path(__file__).resolve().parent.parent / "roteiro.md"
+ROTEIRO = pathlib.Path(__file__).resolve().parent.parent / "files" / "roteiro.md"
 SAIDA = pathlib.Path(__file__).resolve().parent / "notas.js"
 
 # ---------------------------------------------------------------------------
@@ -34,7 +34,7 @@ FICHAS = {
      "1) Gestão: continuidade → entra **por cima** do que existe.",
      "2) Morador já está no WhatsApp. Ceará: falta **36% → 22% só com lembrete**.",
      "3) Calendário: **30/09** Anvisa — receituário controlado ganha versão eletrônica.",
-     "**26/08 — daqui a 8 dias**: CFM sobre IA. Não proíbe: organiza (IA apoia, médico decide, uso registrado, paciente informado; cobra de quem contrata).",
+     "**26/08 — daqui a 7 dias**: CFM sobre IA. Não proíbe: organiza (IA apoia, médico decide, uso registrado, paciente informado; cobra de quem contrata).",
      "Fecho: chega com ou sem a gente — a diferença é chegar organizada.",
      "⚠️ NÃO dizer 'absoluta' · NÃO '40% das vagas' (é falta 36→22, lembrete) · NÃO '100% eletrônica' (papel continua valendo)."],
  5: ["Antes de propor: o que vocês já têm — é muito.",
@@ -60,12 +60,13 @@ FICHAS = {
      "**Ser claro:** já roda = histórico, chat de triagem, mapa das unidades, plano de cuidado. A construir = check-in por QR, autorização de exame integrada.",
      "'Meu SUS Digital já não faz isso?' — agenda UBS, e bem. Não faz triagem antes, acompanhamento depois, nem conversa com o **seu** hospital.",
      "⚠️ A tela do celular é **ilustração do conceito** (está em inglês) — NUNCA 'print do nosso sistema'. NÃO repetir 'filas em 70%'."],
- 9: ["O mapa — coração da apresentação. Sete paradas.",
-     "Começa **em casa**: Maria manda mensagem ou **áudio** (pra quem não lê bem).",
-     "Triagem faz as perguntas de enfermeira, classifica por cor (Manchester — o mesmo da sua enfermagem). Verde/azul → UBS; amarelo/vermelho → hospital.",
-     "Recepção: **o cadastro já está lá**, ninguém redigita. Médico vê a história desde a mensagem. Plano de cuidado volta pro celular.",
-     "Rodapé: o que a Maria digitou é o que a recepção vê e o médico abre. Uma jornada, um cadastro.",
-     "✅ 'Isso **está construído**.' Não trouxe pra clicar de propósito — demonstração é com quem opera, na visita do comitê."],
+ 9: ["O mapa — coração da apresentação. **Três partes.**",
+     "**Esquerda — a jornada (✅ construído):** Maria manda mensagem ou **áudio** de casa; triagem pergunta como enfermeira, classifica por cor (Manchester). Verde/azul → UBS; amarelo/vermelho → hospital. Recepção: **cadastro já está lá**; médico vê a história; plano de cuidado volta pro celular. Uma jornada, um cadastro.",
+     "**Centro/direita — o agente:** 'a senhora está colocando **180 pessoas de confiança com tablet** em toda casa' (pregão da atenção primária, DOM desta semana). Problema nº 1 do digital é adoção. Agente explica e cadastra na visita; o caminho volta: quem não responde/sumiu → **'essa casa precisa de visita'**.",
+     "Frase: **o agente é o braço presencial do acolhimento digital; o Acolhe faz o agente ir onde precisa, não onde dá.**",
+     "🔜 **'Essa parte a gente constrói com quem vencer o pregão — hoje não existe.** No dia 1, sem integração, já entrego a lista de visitas pra equipe.'",
+     "**Quadro de baixo:** o edital compra a **base** (tablet, prontuário, porta de integração). **A gente não concorre nele.** Acolhe = camada de atendimento em cima; entra pela porta que o edital exige. Ninguém desliga nada, ninguém compra duas vezes.",
+     "⚠️ NÃO 'já contratadas' (nada assinado antes de 28/08 → 'que o edital prevê') · NÃO 'vamos integrar com o app dos agentes' · NÃO 'solução de integração' · 'HL7 FHIR' → 'o padrão que o edital exige' · figuras = arte, não print · sem preço, sem 'quem vai ganhar'."],
  10: ["A resposta pra foto do começo. Três coisas.",
       "1) **Hora marcada** — igual à Receita Federal — pros serviços presenciais (cartão SUS, retirada de exame, cirurgia). Ninguém dorme na calçada.",
       "2) Pedido do médico **nasce digital**, cai na fila da Central com prioridade clínica. Sem papel, sem carimbo, sem 2ª viagem.",
@@ -105,8 +106,8 @@ FICHAS = {
 
 # Cronogramas (Apêndice A). Metas acumuladas em minutos por slide, por versão.
 VERSOES = {
-  "25": {"nome": "Cheia · 25 min", "slides": list(range(1, 15)),
-         "meta": {1: 0.5, 2: 2.5, 3: 4, 4: 6, 5: 7.5, 6: 9, 7: 10, 8: 11.5, 9: 13.5, 10: 16, 11: 17.5, 12: 19.5, 13: 22, 14: 25}},
+  "25": {"nome": "Cheia · 25,5 min", "slides": list(range(1, 15)),
+         "meta": {1: 0.5, 2: 2.5, 3: 4, 4: 6, 5: 7.5, 6: 9, 7: 10, 8: 11.5, 9: 14, 10: 16.5, 11: 18, 12: 20, 13: 22.5, 14: 25.5}},
   "12": {"nome": "Enxuta · 12 min", "slides": [2, 3, 5, 9, 10, 12, 14],
          "meta": {2: 2, 3: 3, 5: 4, 9: 6, 10: 8.5, 12: 10, 14: 12}},
   "5":  {"nome": "Emergência · 5 min", "slides": [2, 10, 12, 14],
@@ -142,9 +143,9 @@ def extrair_blocos(corpo: str) -> dict:
     if m2: fala = m2.group(1)
     fala = "\n".join(l[2:] if l.startswith("> ") else ("" if l.strip() == ">" else l) for l in fala.strip().splitlines()).strip()
     cuidado = bloco(corpo, r"⚠️ Cuidado neste slide")
-    pergunta = ""
-    mp = re.search(r"^\*\*Se ela perguntar([^*]*)\*\*:?\s*(.*?)(?=^\*\*|\Z)", corpo, flags=re.M | re.S)
-    if mp: pergunta = ("**Se ela perguntar" + mp.group(1) + "** " + mp.group(2)).strip()
+    # pode haver mais de um "Se ela perguntar" no slide — junta todos
+    perguntas = re.findall(r"^\*\*Se ela perguntar([^*]*)\*\*:?\s*(.*?)(?=^\*\*|\Z)", corpo, flags=re.M | re.S)
+    pergunta = "\n\n".join(("**Se ela perguntar" + a + "** " + b).strip() for a, b in perguntas)
     return {"tela": tela, "mensagem": msg.strip("*_ "), "etiqueta": etiq, "tempo": tempo,
             "fala": fala, "cuidado": cuidado, "pergunta": pergunta}
 
