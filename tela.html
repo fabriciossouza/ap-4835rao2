@@ -74,7 +74,7 @@
       onState: (n, de, antiga) => { mostrar(n, !antiga); },   // histórico: aplica sem "recebi"; ao vivo: confirma
       onStatus: s => { dot.className = s === "ok" ? "ok" : (s === "reconectando" ? "" : (s === "off" ? "off" : "")); },
     });
-    setInterval(() => Sync.sendHb(), 45000);   // "estou vivo" a cada 45 s (baixo tráfego)
+    setTimeout(() => Sync.sendAck(atual), 1500);   // um "recebi" ao iniciar = sinal de vida (sem heartbeat: cota diária)
   }
   splash.addEventListener("click", iniciar);
   splash.addEventListener("touchend", e => { e.preventDefault(); iniciar(); }, { passive: false });

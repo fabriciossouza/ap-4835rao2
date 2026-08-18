@@ -241,6 +241,8 @@
     onAck: (n) => { ackN = n; ackAt = Date.now(); renderAck(); },
     onHb: () => { tabAt = Date.now(); renderAck(); },
     onStatus: s => { $("dmural").className = "d " + (s === "ok" ? "ok" : (s === "off" ? "off" : "")); $("smural").textContent = s === "ok" ? "mural" : s; },
+    onPublish: (srv, ok) => { const a = $("ack"); if (!ok) { a.className = "wait"; a.textContent = "✗ não enviou — toque duplo no tablet"; }
+                              else if (srv && srv !== CFG.servers[0]) { $("smural").textContent = "mural·" + srv.replace("https://ntfy.", "").split(".")[0]; } },
   });
   render();
 })();
